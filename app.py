@@ -6,13 +6,13 @@ import joblib
 # ----------------------------------------
 # 1. Load saved artifacts
 # ----------------------------------------
-scaler           = joblib.load('scaler.pkl')
-knn_tuned        = joblib.load('knn_tuned.pkl')
-svm_tuned        = joblib.load('svm_tuned.pkl')
-xgb_tuned        = joblib.load('xgb_tuned.pkl')
-le               = joblib.load('label_encoder.pkl')
-accuracy_tuned   = joblib.load('accuracy_tuned.pkl')
-feature_columns  = joblib.load('feature_columns.pkl')
+scaler           = joblib.load('models/scaler.pkl')
+knn_tuned        = joblib.load('models/knn_tuned.pkl')
+svm_tuned        = joblib.load('models/svm_tuned.pkl')
+xgb_tuned        = joblib.load('models/xgb_tuned.pkl')
+le               = joblib.load('models/label_encoder.pkl')
+accuracy_tuned   = joblib.load('models/accuracy_tuned.pkl')
+feature_columns  = joblib.load('models/feature_columns.pkl')
 
 with open('dataset_info.md', 'r') as f:
     dataset_info = f.read()
