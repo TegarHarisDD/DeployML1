@@ -152,15 +152,15 @@ To deploy on **Streamlit Cloud** or any other hosting:
 ## 📁 Repository Structure
 
 ```
+├── models/                
+│   ├── scaler.pkl
+│   ├── feature_columns.pkl
+│   ├── label_encoder.pkl
+│   ├── knn_tuned.pkl
+│   ├── svm_tuned.pkl
+│   └── xgb_tuned.pkl
 ├── app.py
 ├── dataset_info.md
 ├── requirements.txt
-├── scaler.pkl
-├── feature_columns.pkl
-├── label_encoder.pkl
-├── knn_tuned.pkl
-├── svm_tuned.pkl
-├── xgb_tuned.pkl
-├── accuracy_tuned.pkl
 └── README.md
 ```
