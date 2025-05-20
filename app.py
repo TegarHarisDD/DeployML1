@@ -21,32 +21,42 @@ with open('dataset_info.md', 'r') as f:
 num_feats = ['Age','Height','Weight','FCVC','NCP','CH2O','FAF','TUE','BMI']
 
 # ----------------------------------------
+# 1.a Mapping dicts for form labels → codes
+# ----------------------------------------
+GENDER_MAP = {"Female": 0, "Male": 1}
+CALC_MAP   = {"No": 0, "Sometimes": 1, "Frequently": 2}
+FAVC_MAP   = {"No": 0, "Yes": 1}
+SCC_MAP    = {"No": 0, "Yes": 1}
+SMOKE_MAP  = {"No": 0, "Yes": 1}
+FAM_MAP    = {"No": 0, "Yes": 1}
+CAEC_MAP   = {"No": 0, "Sometimes": 1, "Frequently": 2, "Always": 3}
+MTRANS_MAP = {
+    "Walking": 0,
+    "Public Transportation": 1,
+    "Automobile": 2,
+    "Motorbike": 3,
+    "Bike": 4
+}
+
+# ----------------------------------------
 # 2. Preprocessing helper
 # ----------------------------------------
 def preprocess_input(df_in: pd.DataFrame) -> pd.DataFrame:
     df = df_in.copy()
-
-    # 2.1 Compute BMI
     df['BMI'] = df['Weight'] / (df['Height'] ** 2)
 
-    # 2.2 One‑hot encode categorical columns exactly as in training
     cat_cols = [
         'Gender','CALC','FAVC','SCC','SMOKE',
         'family_history_with_overweight','CAEC','MTRANS'
     ]
     df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
 
-    # 2.3 Add any missing dummy columns (fill with 0)
     for col in feature_columns:
         if col not in df.columns:
             df[col] = 0
 
-    # 2.4 Reorder to match training feature order
     df = df[feature_columns]
-
-    # 2.5 Scale numeric features
     df[num_feats] = scaler.transform(df[num_feats])
-
     return df
 
 # ----------------------------------------
@@ -66,11 +76,8 @@ if page == "About":
         st.write(f"- **{model_name}**: {acc:.4f}")
     st.markdown("""
     **Purpose:**  
-    This application classifies individuals into obesity categories based on personal, dietary, 
-    and lifestyle features, using three hyperparameter‑tuned models:  
-    - K‑Nearest Neighbors (KNN)  
-    - Support Vector Machine (SVM)  
-    - XGBoost (XGB)  
+    Classify obesity levels based on personal, dietary, and lifestyle features  
+    using hyperparameter‑tuned KNN, SVM & XGBoost models.
     """)
 
 # ----------------------------------------
@@ -80,43 +87,57 @@ elif page == "Single Prediction":
     st.title("Single‑Row Prediction")
 
     with st.form("input_form"):
-        age     = st.number_input("Age (years)",     min_value=14, max_value=80,  value=25)
-        gender  = st.selectbox("Gender (0=Female, 1=Male)", [0, 1])
-        height  = st.number_input("Height (meters)", min_value=1.2,  max_value=2.2,  value=1.70, format="%.2f")
-        weight  = st.number_input("Weight (kg)",     min_value=30.0, max_value=200.0, value=70.0, format="%.1f")
+        # Numeric inputs
+        age    = st.number_input("Age (years)", 14, 80, 25)
+        height = st.number_input("Height (meters)", 1.2, 2.2, 1.70, format="%.2f")
+        weight = st.number_input("Weight (kg)", 30.0, 200.0, 70.0, format="%.1f")
+        FCVC   = st.number_input("Vegetable freq (FCVC)", 0, 10, 3)
+        NCP    = st.number_input("Meals per day (NCP)", 0, 10, 3)
+        CH2O   = st.number_input("Water intake L (CH2O)", 0.0, 10.0, 2.0)
+        FAF    = st.number_input("Physical activity freq (FAF)", 0.0, 15.0, 1.0)
+        TUE    = st.number_input("Device use hrs (TUE)", 0, 10, 2)
 
-        FCVC    = st.number_input("Vegetable freq (FCVC)", min_value=0, max_value=10, value=3)
-        NCP     = st.number_input("Meals per day (NCP)",   min_value=0, max_value=10, value=3)
-        CH2O    = st.number_input("Water intake L (CH2O)", min_value=0.0, max_value=10.0, value=2.0)
-        FAF     = st.number_input("Physical activity freq (FAF)", min_value=0.0, max_value=15.0, value=1.0)
-        TUE     = st.number_input("Device use hrs (TUE)", min_value=0, max_value=10, value=2)
-
-        CALC    = st.selectbox("Caloric drinks (CALC)", [0, 1, 2])
-        FAVC    = st.selectbox("High‑cal food (FAVC)", [0, 1])
-        SCC     = st.selectbox("Calories monitoring (SCC)", [0, 1])
-        SMOKE   = st.selectbox("Smoking habit (SMOKE)", [0, 1])
-        fam     = st.selectbox("Family history overweight", [0, 1])
-        CAEC    = st.selectbox("Snacking between meals (CAEC)", [0, 1, 2, 3])
-        MTRANS  = st.selectbox("Transport mode (MTRANS)", [0, 1, 2, 3, 4])
+        # Categorical inputs as labels
+        gender_label  = st.selectbox("Gender", list(GENDER_MAP.keys()))
+        calc_label    = st.selectbox("Caloric drinks (CALC)", list(CALC_MAP.keys()))
+        favc_label    = st.selectbox("High‑calorie food (FAVC)", list(FAVC_MAP.keys()))
+        scc_label     = st.selectbox("Calorie monitoring (SCC)", list(SCC_MAP.keys()))
+        smoke_label   = st.selectbox("Smoking habit (SMOKE)", list(SMOKE_MAP.keys()))
+        fam_label     = st.selectbox("Family history overweight", list(FAM_MAP.keys()))
+        caec_label    = st.selectbox("Snacking between meals (CAEC)", list(CAEC_MAP.keys()))
+        mtrans_label  = st.selectbox("Transport mode (MTRANS)", list(MTRANS_MAP.keys()))
 
         submitted = st.form_submit_button("Predict")
 
     if submitted:
+        # Map labels back to numeric codes
         input_df = pd.DataFrame([{
-            'Age': age, 'Gender': gender, 'Height': height, 'Weight': weight,
-            'FCVC': FCVC, 'NCP': NCP, 'CH2O': CH2O, 'FAF': FAF, 'TUE': TUE,
-            'CALC': CALC, 'FAVC': FAVC, 'SCC': SCC, 'SMOKE': SMOKE,
-            'family_history_with_overweight': fam, 'CAEC': CAEC, 'MTRANS': MTRANS
+            'Age': age,
+            'Gender': GENDER_MAP[gender_label],
+            'Height': height,
+            'Weight': weight,
+            'FCVC': FCVC,
+            'NCP': NCP,
+            'CH2O': CH2O,
+            'FAF': FAF,
+            'TUE': TUE,
+            'CALC': CALC_MAP[calc_label],
+            'FAVC': FAVC_MAP[favc_label],
+            'SCC': SCC_MAP[scc_label],
+            'SMOKE': SMOKE_MAP[smoke_label],
+            'family_history_with_overweight': FAM_MAP[fam_label],
+            'CAEC': CAEC_MAP[caec_label],
+            'MTRANS': MTRANS_MAP[mtrans_label]
         }])
 
         Xp = preprocess_input(input_df)
 
-        # Raw numeric predictions
+        # Raw predictions
         p_knn = knn_tuned.predict(Xp)[0]
         p_svm = svm_tuned.predict(Xp)[0]
         p_xgb = xgb_tuned.predict(Xp)[0]
 
-        # Inverse‑map to categorical labels
+        # Inverse to category names
         c_knn = le.inverse_transform([p_knn])[0]
         c_svm = le.inverse_transform([p_svm])[0]
         c_xgb = le.inverse_transform([p_xgb])[0]
@@ -138,8 +159,6 @@ elif page == "Bulk Prediction":
 
         proc = preprocess_input(data)
         preds = xgb_tuned.predict(proc)
-
-        # Map back to category labels
         data['Predicted_NObeyesdad'] = le.inverse_transform(preds)
 
         st.subheader("Predictions")
