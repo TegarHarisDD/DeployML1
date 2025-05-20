@@ -70,6 +70,7 @@ page = st.sidebar.radio("Pilih Halaman", ["Tentang Aplikasi", "Prediksi Tunggal"
 # ----------------------------------------
 if page == "Tentang Aplikasi":
     st.title("Aplikasi Klasifikasi Obesitas")
+    st.markdown("""Oleh: Tegar Haris DD _ A11.2022.14428""")
     st.markdown(dataset_info)
     st.subheader("Akurasi Model Setelah Tuning")
     for model_name, acc in accuracy_tuned.items():
