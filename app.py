@@ -70,6 +70,10 @@ page = st.sidebar.radio("Go to", ["About", "Single Prediction", "Bulk Prediction
 # ----------------------------------------
 if page == "About":
     st.title("Obesity Classification App")
+     st.markdown("""
+    **Purpose:**  
+    By Tegar Haris DD - A11.2022.14428
+    """)
     st.markdown(dataset_info)
     st.subheader("Tuned Model Accuracies")
     for model_name, acc in accuracy_tuned.items():
