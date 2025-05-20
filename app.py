@@ -3,133 +3,117 @@ import pandas as pd
 import numpy as np
 import joblib
 
-# Load saved files and models
-scaler = joblib.load('scaler.pkl')
-knn_default = joblib.load('knn_default.pkl')
-svm_default = joblib.load('svm_default.pkl')
-xgb_default = joblib.load('xgb_default.pkl')
-
-knn_tuned = joblib.load('knn_tuned.pkl')
-svm_tuned = joblib.load('svm_tuned.pkl')
-xgb_tuned = joblib.load('xgb_tuned.pkl')
-
-accuracy_default = joblib.load('accuracy_default.pkl')
-accuracy_tuned = joblib.load('accuracy_tuned.pkl')
-
-with open('dataset_info.md', 'r') as f:
+# ----------------------------------------
+# 1. Load scaler, models, accuracy & cols
+# ----------------------------------------
+scaler           = joblib.load('scaler.pkl')
+knn_tuned        = joblib.load('knn_tuned.pkl')
+svm_tuned        = joblib.load('svm_tuned.pkl')
+xgb_tuned        = joblib.load('xgb_tuned.pkl')
+accuracy_tuned   = joblib.load('accuracy_tuned.pkl')
+with open('dataset_info.md','r') as f:
     dataset_info = f.read()
 
-# Constants
+# THIS is the crucial addition:
+feature_columns = joblib.load('feature_columns.pkl')
+
+# Numeric features you scaled
 num_feats = ['Age','Height','Weight','FCVC','NCP','CH2O','FAF','TUE','BMI']
 
-# Sidebar navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["About", "Single Prediction", "Bulk Prediction"])
+# ----------------------------------------
+# 2. Preprocessing helper
+# ----------------------------------------
+def preprocess_input(df_in):
+    df = df_in.copy()
+    # 2.1 compute BMI
+    df['BMI'] = df['Weight'] / df['Height']**2
 
-def preprocess_input(data):
-    """Preprocess a single sample or DataFrame"""
-    data = data.copy()
-    # Calculate BMI if not present
-    if 'BMI' not in data.columns:
-        data['BMI'] = data['Weight'] / (data['Height'] ** 2)
-    # Encode categorical columns manually as done in training (Gender, CALC, etc.)
-    # Assuming these columns:
+    # 2.2 one‑hot encode exactly as in training
+    #    drop_first=True was used, so we must replicate it
     cat_cols = ['Gender','CALC','FAVC','SCC','SMOKE',
                 'family_history_with_overweight','CAEC','MTRANS']
-    for col in cat_cols:
-        # For this example, assume binary and encoded as 0/1 or via get_dummies with drop_first=True
-        if col in data.columns:
-            data[col] = data[col].astype(int)
-        else:
-            data[col] = 0  # default if missing
-    # Create dummy vars as needed (must match training)
-    data = pd.get_dummies(data, columns=cat_cols, drop_first=True)
-    # Add any missing dummy columns from training set with 0
-    trained_cols = scaler.feature_names_in_
-    for c in trained_cols:
-        if c not in data.columns:
-            data[c] = 0
-    # Reorder columns to match training set
-    data = data[trained_cols]
-    # Scale numeric features
-    data[num_feats] = scaler.transform(data[num_feats])
-    return data
+    df = pd.get_dummies(df, columns=cat_cols, drop_first=True)
 
+    # 2.3 Add any missing dummy columns from training; fill with 0
+    for col in feature_columns:
+        if col not in df.columns:
+            df[col] = 0
+
+    # 2.4 Reorder to match training
+    df = df[feature_columns]
+
+    # 2.5 Scale numeric columns
+    df[num_feats] = scaler.transform(df[num_feats])
+
+    return df
+
+# ----------------------------------------
+# 3. Sidebar navigation
+# ----------------------------------------
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["About","Single Prediction","Bulk Prediction"])
+
+# ----------------------------------------
+# 4. ABOUT page
+# ----------------------------------------
 if page == "About":
     st.title("Obesity Classification App")
     st.markdown(dataset_info)
-    st.subheader("Model Accuracies")
-    st.markdown("### Default Models")
-    for model_name, acc in accuracy_default.items():
-        st.write(f"- {model_name}: {acc:.4f}")
-    st.markdown("### Tuned Models")
-    for model_name, acc in accuracy_tuned.items():
-        st.write(f"- {model_name}: {acc:.4f}")
-    st.markdown("### Purpose")
-    st.write("""
-    This app classifies obesity levels based on personal and lifestyle data using
-    three machine learning models (KNN, SVM, XGBoost) with and without hyperparameter tuning.
+    st.subheader("Tuned Model Accuracies")
+    for name, acc in accuracy_tuned.items():
+        st.write(f"- **{name}**: {acc:.4f}")
+    st.markdown("""
+    **Purpose:**  
+    Classify obesity levels using KNN, SVM & XGBoost (hyperparameter‑tuned).  
     """)
 
+# ----------------------------------------
+# 5. SINGLE PREDICTION page
+# ----------------------------------------
 elif page == "Single Prediction":
-    st.title("Single Prediction")
+    st.title("Single‑Row Prediction")
+
     with st.form("input_form"):
-        # Input form fields (example subset, add all necessary)
-        age = st.number_input("Age (years)", min_value=14, max_value=80, value=25)
-        gender = st.selectbox("Gender (0=Female, 1=Male)", options=[0,1])
-        height = st.number_input("Height (meters)", min_value=1.2, max_value=2.2, value=1.7, format="%.2f")
-        weight = st.number_input("Weight (kg)", min_value=30.0, max_value=200.0, value=70.0, format="%.1f")
-        FCVC = st.number_input("Frequency of vegetables consumption (FCVC)", min_value=0, max_value=10, value=3)
-        NCP = st.number_input("Number of main meals (NCP)", min_value=0, max_value=10, value=3)
-        CH2O = st.number_input("Daily water consumption (CH2O) (liters)", min_value=0, max_value=10, value=2)
-        FAF = st.number_input("Physical activity frequency (FAF)", min_value=0.0, max_value=15.0, value=1.0)
-        TUE = st.number_input("Time using electronic devices (TUE) (hours)", min_value=0, max_value=10, value=2)
-        
-        # Categorical binary inputs
-        CALC = st.selectbox("Calories consumption (CALC)", options=[0,1,2])
-        FAVC = st.selectbox("High calorie food consumption (FAVC)", options=[0,1])
-        SCC = st.selectbox("Smoke (SCC)", options=[0,1])
-        SMOKE = st.selectbox("Smoking habit (SMOKE)", options=[0,1])
-        family_history = st.selectbox("Family history with overweight", options=[0,1])
-        CAEC = st.selectbox("Consumption of food between meals (CAEC)", options=[0,1,2,3])
-        MTRANS = st.selectbox("Transportation used (MTRANS)", options=[0,1,2,3,4])
+        age     = st.number_input("Age", 14, 80, 25)
+        gender  = st.selectbox("Gender (0=F,1=M)", [0,1])
+        height  = st.number_input("Height (m)", 1.2, 2.2, 1.7, format="%.2f")
+        weight  = st.number_input("Weight (kg)", 30.0, 200.0, 70.0, format="%.1f")
+        FCVC    = st.number_input("Veg freq (FCVC)", 0, 10, 3)
+        NCP     = st.number_input("Main meals (NCP)", 0, 10, 3)
+        CH2O    = st.number_input("Water liters (CH2O)", 0.0, 10.0, 2.0)
+        FAF     = st.number_input("Phys act freq (FAF)", 0.0, 15.0, 1.0)
+        TUE     = st.number_input("Device hours (TUE)", 0, 10, 2)
+        CALC    = st.selectbox("Caloric drinks (CALC)", [0,1,2])
+        FAVC    = st.selectbox("High‑cal food (FAVC)", [0,1])
+        SCC     = st.selectbox("Calorie monitoring (SCC)", [0,1])
+        SMOKE   = st.selectbox("Smoking (SMOKE)", [0,1])
+        fam     = st.selectbox("Fam overweight", [0,1])
+        CAEC    = st.selectbox("Snacking (CAEC)", [0,1,2,3])
+        MTRANS  = st.selectbox("Transport (MTRANS)", [0,1,2,3,4])
+        submit  = st.form_submit_button("Predict")
 
-        submitted = st.form_submit_button("Predict")
-    if submitted:
-        input_df = pd.DataFrame({
-            'Age': [age], 'Gender':[gender], 'Height':[height], 'Weight':[weight],
-            'FCVC':[FCVC], 'NCP':[NCP], 'CH2O':[CH2O], 'FAF':[FAF], 'TUE':[TUE],
-            'CALC':[CALC], 'FAVC':[FAVC], 'SCC':[SCC], 'SMOKE':[SMOKE],
-            'family_history_with_overweight':[family_history], 'CAEC':[CAEC], 'MTRANS':[MTRANS]
-        })
-        input_processed = preprocess_input(input_df)
-        pred_knn = knn_tuned.predict(input_processed)[0]
-        pred_svm = svm_tuned.predict(input_processed)[0]
-        pred_xgb = xgb_tuned.predict(input_processed)[0]
+    if submit:
+        inp = pd.DataFrame([{
+            'Age':age,'Gender':gender,'Height':height,'Weight':weight,
+            'FCVC':FCVC,'NCP':NCP,'CH2O':CH2O,'FAF':FAF,'TUE':TUE,
+            'CALC':CALC,'FAVC':FAVC,'SCC':SCC,'SMOKE':SMOKE,
+            'family_history_with_overweight':fam,'CAEC':CAEC,'MTRANS':MTRANS
+        }])
+        Xp = preprocess_input(inp)
+        st.write("**KNN →**", knn_tuned.predict(Xp)[0])
+        st.write("**SVM →**", svm_tuned.predict(Xp)[0])
+        st.write("**XGB →**", xgb_tuned.predict(Xp)[0])
 
-        st.write(f"KNN Prediction: {pred_knn}")
-        st.write(f"SVM Prediction: {pred_svm}")
-        st.write(f"XGB Prediction: {pred_xgb}")
-
+# ----------------------------------------
+# 6. BULK PREDICTION page
+# ----------------------------------------
 elif page == "Bulk Prediction":
-    st.title("Bulk Prediction")
-    st.write("Upload CSV file with same features as input except target")
-
-    uploaded_file = st.file_uploader("Choose CSV file", type=["csv"])
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
-        st.write("Preview uploaded data:")
+    st.title("Bulk CSV Prediction")
+    up = st.file_uploader("Upload CSV", type="csv")
+    if up:
+        data = pd.read_csv(up)
         st.write(data.head())
-
-        data_processed = preprocess_input(data)
-        preds = xgb_tuned.predict(data_processed)
-        data['Predicted_NObeyesdad'] = preds
-
-        st.write("Predictions:")
+        proc = preprocess_input(data)
+        data['Predicted_NObeyesdad'] = xgb_tuned.predict(proc)
         st.write(data[['Predicted_NObeyesdad']])
-        st.download_button(
-            label="Download predictions as CSV",
-            data=data.to_csv(index=False),
-            file_name="predictions.csv",
-            mime="text/csv"
-        )
+        st.download_button("Download CSV", data.to_csv(index=False), "preds.csv")
