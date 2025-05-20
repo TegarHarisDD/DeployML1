@@ -1,7 +1,8 @@
+# Informasi Dataset
 
-# Dataset Overview
-- Dataset contains 2111 samples with 17 columns including Age, Gender, Height, Weight, etc.
-- Target variable is NObeyesdad, categorizing obesity levels.
-- Data cleaning included removing duplicates, nulls, outliers in Age, Weight, Height.
-- Feature engineering included BMI calculation.
-- Encoding categorical variables and normalization applied.
+## Ringkasan
+- Dataset berisi 2111 sampel dengan 17 kolom termasuk Age, Gender, Height, Weight, dll.
+- Variabel target adalah NObeyesdad, mengkategorikan tingkat obesitas.
+- Pembersihan data termasuk menghapus duplikat, nilai null, dan outlier pada Age, Weight, Height.
+- Feature engineering termasuk perhitungan BMI.
+- Encoding variabel kategorikal dan normalisasi diterapkan.
