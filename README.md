@@ -2,25 +2,6 @@
 
 Welcome to the **Obesity Classification** Streamlit application! This repository contains everything you need to explore, predict, and understand obesity categories based on lifestyle and demographic data using three machine learning models: K‑Nearest Neighbors (KNN), Support Vector Machine (SVM), and XGBoost (XGB).
 
----
-
-### 📋 Table of Contents
-
-1. [Project Overview](#project-overview)
-2. [Features](#features)
-3. [Data Description](#data-description)
-4. [Modeling Pipeline](#modeling-pipeline)
-5. [App Structure](#app-structure)
-6. [Installation & Setup](#installation--setup)
-7. [Usage](#usage)
-8. [Deployment](#deployment)
-9. [Repository Structure](#repository-structure)
-10. [Contributing](#contributing)
-11. [License](#license)
-12. [Contact](#contact)
-
----
-
 ## 🔍 Project Overview
 
 This application allows users to:
