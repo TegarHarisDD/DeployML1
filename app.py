@@ -89,7 +89,7 @@ elif page == "Single Prediction":
         age     = st.number_input("Age (years)", 14, 80, 25)
         gender  = st.selectbox("Gender", list(gender_map.keys()))
         height  = st.number_input("Height (meters)", 1.2, 2.2, 1.70, format="%.2f")
-        weight  = st.number_input("Weight (kg)", 30.0, 200.0, 70.0, format="%.1f")
+        weight  = st.number_input("Weight (kg)", 30.0, 200.0, 60.0, format="%.1f")
 
         FCVC    = st.number_input("Vegetable freq (FCVC)", 0, 10, 3)
         NCP     = st.number_input("Meals per day (NCP)", 0, 10, 3)
